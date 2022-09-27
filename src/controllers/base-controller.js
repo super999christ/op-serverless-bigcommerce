@@ -6,9 +6,13 @@ class BaseController {
     this.event = event;
     this.method = event.httpMethod;
     this.queryStringParameters = event.queryStringParameters || {};
-    this.body = event.body || '';
     this.pathParameters = event.pathParameters || {};
+    try {
+      this.body = JSON.parse(event.body);
+    } catch(err) {
+      this.body = {};
+    }
   }
 }
 
-export default BasicController;
+export default BaseController;

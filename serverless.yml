@@ -1,5 +1,5 @@
 # NOTE: update this with your service name
-service: order-protection-serverless-bigcommerce
+service: order-protection-serverless-bc-test9
 
 # Create an optimized package for our functions 
 package:
@@ -15,7 +15,7 @@ provider:
   runtime: nodejs14.x
   stage: ${opt:stage, 'dev'}
   lambdaHashingVersion: '20201221'
-  region: us-east-1
+  region: us-west-1
   # To load environment variables externally
   # rename env.example to .env and uncomment
   # the following line. Also, make sure to not
@@ -31,9 +31,27 @@ custom:
     httpPort: 3003
 
 functions:
-  hello:
-    handler: handler.hello
+  receiveSecret:
+    handler: handler.receiveSecret
     events:
       - http:
-          path: hello
-          method: get
+          path: secret/receive-secret
+          method: post
+  handleOrder:
+    handler: handler.handleOrder
+    events:
+      - http:
+          path: order/handle-order
+          method: any
+  handleProduct:
+    handler: handler.handleProduct
+    events:
+      - http:
+          path: product/handle-product
+          method: any
+  handleShipment:
+    handler: handler.handleShipment
+    events:
+      - http:
+          path: shipment/handle-shipment
+          method: any
