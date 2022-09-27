@@ -16,9 +16,9 @@ const buildResponse = (statusCode, body, contentType) => {
       "Access-Control-Allow-Credentials": true,
       "Content-Type": contentType
     },
-    body: contentType === DEFAULT_RESPONSE_TYPE ? JSON.stringify(body) : body
-  }
-}
+    body: JSON.stringify(body)
+  };
+};
 
 /**
  * Returns success http response with status 200
@@ -39,7 +39,7 @@ const success = (body, contentType = DEFAULT_RESPONSE_TYPE) => {
  */
 const failure = (body, statusCode = 500, contentType = DEFAULT_RESPONSE_TYPE) => {
   return buildResponse(statusCode, body, contentType);
-}
+};
 
 export {
   success,

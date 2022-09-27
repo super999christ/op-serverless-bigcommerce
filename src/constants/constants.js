@@ -5,6 +5,11 @@
 export const DEFAULT_RESPONSE_TYPE = 'application/json';
 
 /**
+ * Base URL of Lambda functions
+ */
+export const BASE_URL = process.env.API_GATEWAY_URL;
+
+/**
  * PostgreSQL Environment Variables
  */
 export const DB_HOST = process.env.DB_HOST;
