@@ -4,7 +4,7 @@ import ShipmentController from "./src/controllers/shipment/shipment-controller";
 import OnboardController from "./src/controllers/store/onboard-controller";
 import { failure, success } from "./src/utils/http-response";
 import { ERROR_GN_ONBOARD_FAILED } from "./src/constants/errors";
-// import BigCommerceWebhook from "./src/bigcommerce/bc-webhook";
+import BigCommerceWebhook from "./src/bigcommerce/bc-webhook";
 import BigCommerceAPI from "./src/bigcommerce/bc-api";
 import { addMerchant, addStore, addStoreSetting, addUser, getPriceTierIdByPrice } from "./src/database/db-helpers";
 import { UserType } from "./src/constants/constants";
@@ -15,10 +15,10 @@ import { UserType } from "./src/constants/constants";
  */
 export const onboardStore = async (event) => {
   const controller = new OnboardController(event);
-  // const webhookService = new BigCommerceWebhook(
-  //   controller.apiPath,
-  //   controller.accessToken
-  // );
+  const webhookService = new BigCommerceWebhook(
+    controller.apiPath,
+    controller.accessToken
+  );
   const apiService = new BigCommerceAPI(
     controller.apiPath,
     controller.accessToken
@@ -26,9 +26,9 @@ export const onboardStore = async (event) => {
 
   try {
     // Setup Order|Product|Shipment-related webhooks
-    // await webhookService.setupOrderWebhook();
-    // await webhookService.setupProductWebhook();
-    // await webhookService.setupShipmentWebhook();
+    await webhookService.setupOrderWebhook();
+    await webhookService.setupProductWebhook();
+    await webhookService.setupShipmentWebhook();
 
     // Create an OP product
     const product = await apiService.createOPProduct();
