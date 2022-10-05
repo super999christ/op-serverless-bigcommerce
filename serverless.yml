@@ -1,7 +1,7 @@
 # NOTE: update this with your service name
-service: order-protection-serverless-bc-test9
+service: order-protection-serverless-bc-test10
 
-# Create an optimized package for our functions 
+# Create an optimized package for our functions
 package:
   individually: true
 
@@ -31,11 +31,11 @@ custom:
     httpPort: 3003
 
 functions:
-  receiveSecret:
-    handler: handler.receiveSecret
+  onboardStore:
+    handler: handler.onboardStore
     events:
       - http:
-          path: secret/receive-secret
+          path: store/onboard-store
           method: post
   handleOrder:
     handler: handler.handleOrder

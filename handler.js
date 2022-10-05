@@ -1,49 +1,96 @@
 import OrderController from "./src/controllers/order/order-controller";
 import ProductController from "./src/controllers/product/product-controller";
 import ShipmentController from "./src/controllers/shipment/shipment-controller";
-import SecretController from "./src/controllers/secret/secret-controller";
+import OnboardController from "./src/controllers/store/onboard-controller";
 import { failure, success } from "./src/utils/http-response";
-import { establishConnection } from "./src/utils/auth-axios";
-import { BASE_URL } from "./src/constants/constants";
+import { ERROR_GN_ONBOARD_FAILED } from "./src/constants/errors";
+// import BigCommerceWebhook from "./src/bigcommerce/bc-webhook";
+import BigCommerceAPI from "./src/bigcommerce/bc-api";
+import { addMerchant, addStore, addStoreSetting, addUser, getPriceTierIdByPrice } from "./src/database/db-helpers";
+import { UserType } from "./src/constants/constants";
 
 /**
  * Receives API credentials via webhook
  * @param {Event} event
  */
-export const receiveSecret = async (event) => {
-  const controller = new SecretController(event);
-
-  // APIPath looks like `https://api.bigcommerce.com/stores/j5cnro6lel/v3/`
-  const axios = establishConnection(controller.apiPath, controller.accessToken);
+export const onboardStore = async (event) => {
+  const controller = new OnboardController(event);
+  // const webhookService = new BigCommerceWebhook(
+  //   controller.apiPath,
+  //   controller.accessToken
+  // );
+  const apiService = new BigCommerceAPI(
+    controller.apiPath,
+    controller.accessToken
+  );
 
   try {
-    // Setup Order-related webhooks
-    await axios.post('/hooks', {
-        scope: 'store/order/*',
-        destination: `${BASE_URL}/order/handle-order`,
-        is_active: true,
-        headers: {}
-      });
-    // Setup Product-related webhooks
-    await axios.post('/hooks', {
-        scope: 'store/product/*',
-        destination: `${BASE_URL}/product/handle-product`,
-        is_active: true,
-        headers: {}
-      });
-    // Setup Shipment-related webhooks
-    await axios.post('/hooks', {
-        scope: 'store/shipment/*',
-        destination: `${BASE_URL}/shipment/handle-shipment`,
-        is_active: true,
-        headers: {}
-      });
-  } catch(err) {
-    console.log('Webhook Setup Error: ', err);
-    return failure({ message: 'Webhook setup failed' });
-  }
+    // Setup Order|Product|Shipment-related webhooks
+    // await webhookService.setupOrderWebhook();
+    // await webhookService.setupProductWebhook();
+    // await webhookService.setupShipmentWebhook();
 
-  return success(controller.getSecret());
+    // Create an OP product
+    const product = await apiService.createOPProduct();
+    // Find variantID
+    const variant = product.variants.find(
+      (item) => item.price === controller.opFee
+    );
+    // Find PriceTierId
+    const priceTierId = await getPriceTierIdByPrice(controller.opFee);
+
+    console.log("@Variant: ", variant);
+    console.log("@PriceTierId: ", priceTierId);
+
+    // Get Store metadata
+    const storeMetadata = await apiService.getStoreMetadata();
+
+    console.log("@StoreMetadata: ", storeMetadata);
+
+    // Create a user
+    const user = await addUser(
+      controller.firstName,
+      controller.lastName,
+      controller.email,
+      controller.password,
+      UserType.MERCHANT
+    );
+
+    console.log("@User: ", user);
+
+    // Create a merchant
+    const merchant = await addMerchant(
+      user["id"],
+      controller.billingEmail,
+      controller.supportEmail
+    );
+
+    console.log("@Merchant: ", merchant);
+
+    // Create a store
+    const store = await addStore(
+      merchant["id"],
+      storeMetadata.name,
+      controller.revSharePercent,
+      variant.id,
+      priceTierId,
+      controller.apiPath,
+      controller.clientId,
+      controller.clientSecret,
+      controller.accessToken
+    );
+
+    console.log("@Store: ", store);
+
+    // Create a storeSetting
+    const storeSetting = await addStoreSetting(storeMetadata.control_panel_base_url);
+
+    console.log("@StoreSetting: ", storeSetting);
+    return success(store);
+  } catch (err) {
+    console.log("#Onboarding Error: ", err);
+    return failure({ message: ERROR_GN_ONBOARD_FAILED });
+  }
 };
 
 /**
@@ -52,7 +99,6 @@ export const receiveSecret = async (event) => {
  */
 export const handleOrder = async (event) => {
   const controller = new OrderController(event);
-  console.log("Order Details: ", controller.body);
   return success(controller.body);
 };
 
