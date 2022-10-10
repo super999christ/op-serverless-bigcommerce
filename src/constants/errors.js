@@ -13,3 +13,4 @@ export const ERROR_WH_SETUP_FAILED = "Failed to setup Webhook";
  * General Error Messages
  */
 export const ERROR_GN_ONBOARD_FAILED = "Failed to onboard store";
+export const ERROR_GN_ORDER_CREATE_FAILED = "Failed to create order";

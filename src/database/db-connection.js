@@ -14,6 +14,13 @@ const connection = {
 };
 
 const dbClient = new Pool(connection);
+
+/**
+ * Executes SQL query
+ * @param {String} query Query string
+ * @param {Array} params Query parameters
+ * @Returns Promise<QueryResult>
+ */
 const executeQuery = (query, params) => {
   return dbClient.query(query, params);
 };

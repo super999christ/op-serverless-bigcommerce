@@ -5,6 +5,9 @@ class ProductController extends BaseController {
     super(event);
   }
 
+  /**
+   * Analyze & Parse event data
+   */
   parseEvent() {
 
   }

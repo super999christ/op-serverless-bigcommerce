@@ -60,6 +60,38 @@ class BigCommerceAPI {
     const metadata = (await this.axiosV2.get("/store")).data;
     return metadata;
   }
+
+  /**
+   * Fetches order by id
+   */
+  async getOrder(orderId) {
+    const order = (await this.axiosV2.get(`/orders/${orderId}`)).data;
+    return order;
+  }
+
+  /**
+   * Fetches customer by id
+   */
+  async getCustomer(customerId) {
+    const customer = (await this.axiosV2.get(`/customers/${customerId}`)).data;
+    return customer;
+  }
+
+  /**
+   * Fetches shipping addresses by orderId
+   */
+  async getShippingAddresses(orderId) {
+    const addresses = (await this.axiosV2.get(`/orders/${orderId}/shipping_addresses`)).data;
+    return addresses;
+  }
+
+  /**
+   * Fetches order products by orderId
+   */
+  async getOrderProducts(orderId) {
+    const product = (await this.axiosV2.get(`/orders/${orderId}/products`)).data;
+    return product;
+  }
 }
 
 export default BigCommerceAPI;

@@ -1,5 +1,5 @@
 import { establishConnection } from "../utils/auth-axios";
-import { BASE_URL } from "../constants/constants";
+import { BASE_LAMBDA_URL } from "../constants/constants";
 
 /**
  * Service class for BigCommerce Webhook
@@ -17,7 +17,7 @@ class BigCommerceWebhook {
   setupOrderWebhook() {
     this.axios.post('/hooks', {
       scope: 'store/order/*',
-      destination: `${BASE_URL}/order/handle-order`,
+      destination: `${BASE_LAMBDA_URL}/order/handle-order`,
       is_active: true,
       headers: {}
     });
@@ -29,7 +29,7 @@ class BigCommerceWebhook {
   setupProductWebhook() {
     this.axios.post('/hooks', {
       scope: 'store/product/*',
-      destination: `${BASE_URL}/product/handle-product`,
+      destination: `${BASE_LAMBDA_URL}/product/handle-product`,
       is_active: true,
       headers: {}
     });
@@ -41,7 +41,7 @@ class BigCommerceWebhook {
   setupShipmentWebhook() {
     this.axios.post('/hooks', {
       scope: 'store/shipment/*',
-      destination: `${BASE_URL}/shipment/handle-shipment`,
+      destination: `${BASE_LAMBDA_URL}/shipment/handle-shipment`,
       is_active: true,
       headers: {}
     });

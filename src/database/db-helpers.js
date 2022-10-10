@@ -1,5 +1,5 @@
 // External dependencies
-import bcrypt from 'bcryptjs';
+import bcrypt from "bcryptjs";
 
 // Internal dependencies
 import { ERROR_DB_FAILED, ERROR_DB_NOT_FOUND } from "../constants/errors";
@@ -10,6 +10,7 @@ import { executeQuery } from "./db-connection";
  * @returns Promise<Store>
  */
 const addStore = (
+  storeId,
   merchantId,
   storeName,
   revSharePercent,
@@ -21,7 +22,7 @@ const addStore = (
   accessToken
 ) => {
   const query = `
-  INSERT INTO stores (merchant_id, store_name, revenue_share, variant_id, price_tier_id, api_path, client_id, client_secret, access_token)
+  INSERT INTO stores (store_id, merchant_id, store_name, revenue_share, variant_id, price_tier_id, api_path, client_id, client_secret, access_token)
   VALUES
     (
       $1, $2, $3, $4, $5, $6, $7, $8, $9
@@ -29,6 +30,7 @@ const addStore = (
   RETURNING *;
   `;
   return executeQuery(query, [
+    storeId,
     merchantId,
     storeName,
     revSharePercent,
@@ -38,17 +40,13 @@ const addStore = (
     clientId,
     clientSecret,
     accessToken,
-  ])
-    .then((res) => {
-      if (res.rowCount) {
-        return res.rows[0];
-      } else {
-        throw Error(ERROR_DB_FAILED);
-      }
-    })
-    .catch((err) => {
-      throw err;
-    });
+  ]).then((res) => {
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
 };
 
 /**
@@ -68,18 +66,20 @@ const addUser = (firstName, lastName, email, password, type) => {
     )
   RETURNING *;
   `;
-  return executeQuery(query, [firstName, lastName, email, hashedPassword, type])
-    .then((res) => {
-      console.log("@User DB Result: ", res);
-      if (res.rowCount) {
-        return res.rows[0];
-      } else {
-        throw Error(ERROR_DB_FAILED);
-      }
-    })
-    .catch((err) => {
-      throw err;
-    });
+  return executeQuery(query, [
+    firstName,
+    lastName,
+    email,
+    hashedPassword,
+    type,
+  ]).then((res) => {
+    console.log("@User DB Result: ", res);
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
 };
 
 /**
@@ -95,17 +95,15 @@ const addMerchant = (userId, billingEmail, supportEmail) => {
     )
   RETURNING *;
   `;
-  return executeQuery(query, [userId, billingEmail, supportEmail])
-    .then((res) => {
+  return executeQuery(query, [userId, billingEmail, supportEmail]).then(
+    (res) => {
       if (res.rowCount) {
         return res.rows[0];
       } else {
         throw Error(ERROR_DB_FAILED);
       }
-    })
-    .catch((err) => {
-      throw err;
-    });
+    }
+  );
 };
 
 /**
@@ -121,17 +119,13 @@ const addStoreSetting = (storeUrl) => {
     )
   RETURNING *;
   `;
-  return executeQuery(query, [storeUrl])
-    .then((res) => {
-      if (res.rowCount) {
-        return res.rows[0];
-      } else {
-        throw Error(ERROR_DB_FAILED);
-      }
-    })
-    .catch((err) => {
-      throw err;
-    });
+  return executeQuery(query, [storeUrl]).then((res) => {
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
 };
 
 /**
@@ -142,16 +136,163 @@ const getPriceTierIdByPrice = (price) => {
   const query = `
   SELECT id FROM price_tiers WHERE insurance_cost = $1;
   `;
-  return executeQuery(query, [price * 100])
+  return executeQuery(query, [price * 100]).then((res) => {
+    if (res.rowCount) {
+      return res.rows[0].id;
+    } else {
+      throw Error(ERROR_DB_NOT_FOUND);
+    }
+  });
+};
+
+/**
+ * Looks up store by id
+ * @returns Promise<Store>
+ */
+const getStoreById = (storeId) => {
+  const query = `
+  SELECT * FROM stores WHERE store_id = $1;
+  `;
+  return executeQuery(query, [storeId]).then((res) => {
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_NOT_FOUND);
+    }
+  });
+};
+
+/**
+ * Adds a new order to the DB
+ */
+const addOrder = (
+  customerName,
+  orderDate,
+  shippingAddress,
+  shippingCourier,
+  phoneNumber,
+  orderTotal,
+  orderShipping,
+  orderId,
+  orderEmail,
+  postalCode,
+  storeId,
+  orderJson,
+  billingAddress,
+  billingPhoneNumber,
+  billingName,
+  ignorePayout = false
+) => {
+  const query = `
+  INSERT INTO orders (customer_name, order_date, shipping_address, shipping_courier, phone_number, order_total, order_shipping, order_id, order_email, postal_code, store_id, order_json, billing_address, billing_phone_number, billing_name, ignore_payout)
+  VALUES
+    (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+    )
+  RETURNING *;`;
+  return executeQuery(query, [
+    customerName,
+    orderDate,
+    shippingAddress,
+    shippingCourier,
+    phoneNumber,
+    orderTotal,
+    orderShipping,
+    orderId,
+    orderEmail,
+    postalCode,
+    storeId,
+    orderJson,
+    billingAddress,
+    billingPhoneNumber,
+    billingName,
+    ignorePayout,
+  ]).then((res) => {
+    console.log("@DB Add Order: ", res);
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
+};
+
+/**
+ * Adds a new order insurance to DB
+ */
+const addOrderInsurance = (
+  insuranceCost,
+  insuranceDiscount,
+  orderId,
+  originalInsurance
+) => {
+  const query = `
+  INSERT INTO order_insurance (insurance_cost, insurance_discount, order_id, original_insurance)
+  VALUES ($1, $2, $3, $4)
+  RETURNING *;`;
+  return executeQuery(query, [
+    insuranceCost,
+    insuranceDiscount,
+    orderId,
+    originalInsurance,
+  ]).then((res) => {
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
+};
+
+/**
+ * Adds a new order item to DB
+ */
+const addOrderItem = (orderId, itemId, lineItemId, quantity, discount) => {
+  const query = `
+  INSERT INTO order_items (order_id, item_id, line_item_id, quantity, discount)
+  VALUES ($1, $2, $3, $4, $5)
+  RETURNING *;`;
+  return executeQuery(query, [
+    orderId,
+    itemId,
+    lineItemId,
+    quantity,
+    discount
+  ]).then(res => {
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
+};
+
+/**
+ * Gets list of available currencies
+ */
+const getCurrencies = () => {
+  const query = `
+  SELECT currency FROM currencies`;
+  return executeQuery(query, [])
+    .then(res => {
+      return res.rows;
+    });
+};
+
+/**
+ * Gets exchange rate of specific date and currency
+ */
+const getTodayRate = (date, currency) => {
+  const query = `
+  SELECT * FROM exchange_rates
+  WHERE date = $1 and convert_to = $2`;
+  return executeQuery(query, [date, currency])
     .then(res => {
       if (res.rowCount) {
-        return res.rows[0].id;
+        return res.rows[0];
       } else {
-        throw Error(ERROR_DB_NOT_FOUND);
+        return null;
       }
-    })
-    .catch(err => {
-      throw err;
     });
 };
 
@@ -160,5 +301,11 @@ export {
   addUser,
   addMerchant,
   addStoreSetting,
-  getPriceTierIdByPrice
+  getPriceTierIdByPrice,
+  getStoreById,
+  addOrder,
+  addOrderInsurance,
+  addOrderItem,
+  getCurrencies,
+  getTodayRate
 };

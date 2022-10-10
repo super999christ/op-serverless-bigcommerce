@@ -5,6 +5,9 @@ class ShipmentController extends BaseController {
     super(event);
   }
 
+  /**
+   * Analyze & Parse event data
+   */
   parseEvent() {
 
   }
