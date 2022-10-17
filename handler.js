@@ -38,7 +38,12 @@ export const handleOrder = async (event) => {
  */
 export const handleProduct = async (event) => {
   const controller = new ProductController(event);
-  return success(controller.body);
+  const products = await controller.processProduct();
+  if (controller.isError()) {
+    return failure(controller.getError());
+  } else {
+    return success(products);
+  }
 };
 
 /**
