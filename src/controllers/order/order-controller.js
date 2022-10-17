@@ -207,7 +207,7 @@ class OrderController extends BaseController {
             await addOrderItem(
               addedOrders[product.order_address_id].id,
               variant.id, // TODO: should be itemId from `items` table
-              product.variant_id, // TODO: should be lineItemId
+              product.id, // TODO: should be lineItemId
               product.quantity,
               totalDiscount
             );
@@ -243,10 +243,6 @@ class OrderController extends BaseController {
       // Get all shipments of the order
       const shipments = await apiService.getOrderShipments(order.id);
       const products = await apiService.getOrderProducts(order.id);
-      const productsByOrderProductId = {};
-      for (const product of products) {
-        productsByOrderProductId[product.id] = product;
-      }
       console.log("@Shipments: ", shipments);
       for (let shipment of shipments) {
         // Iterate items in the shipment
@@ -257,7 +253,7 @@ class OrderController extends BaseController {
             shipment.tracking_carrier,
             shipment.tracking_number,
             shipment.tracking_link,
-            productsByOrderProductId[item.order_product_id].variant_id,
+            item.order_product_id,
             item.product_id,
             this.storeId,
             order.id
