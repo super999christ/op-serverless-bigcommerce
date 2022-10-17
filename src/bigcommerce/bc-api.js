@@ -89,8 +89,48 @@ class BigCommerceAPI {
    * Fetches order products by orderId
    */
   async getOrderProducts(orderId) {
-    const product = (await this.axiosV2.get(`/orders/${orderId}/products`)).data;
-    return product;
+    const products = (await this.axiosV2.get(`/orders/${orderId}/products`)).data;
+    return products;
+  }
+
+  /**
+   * Fetches all the store variants
+   */
+  async getStoreVariants() {
+    const variants = (await this.axios.get('/catalog/variants')).data;
+    return variants.data;
+  }
+
+  /**
+   * Fetches all the store products
+   */
+  async getStoreProducts() {
+    const products = (await this.axios.get('/catalog/products')).data;
+    return products.data;
+  }
+
+  /**
+   * Fetches product by id
+   */
+  async getProduct(productId) {
+    const product = (await this.axios.get(`/catalog/products/${productId}`)).data;
+    return product.data;
+  }
+
+  /**
+   * Fetches all product variants
+   */
+  async getProductVariants(productId) {
+    const variants = (await this.axios.get(`/catalog/products/${productId}/variants`)).data;
+    return variants.data;
+  }
+
+  /**
+   * Fetches all order shipments by orderId
+   */
+  async getOrderShipments(orderId) {
+    const shipments = (await this.axiosV2.get(`/orders/${orderId}/shipments`)).data;
+    return shipments;
   }
 }
 
