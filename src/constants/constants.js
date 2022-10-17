@@ -42,6 +42,8 @@ export const variantPrices = [
  */
 export const EVENT_ORDER_CREATED = "order/created";
 export const EVENT_ORDER_UPDATED = "order/updated";
+export const EVENT_PRODUCT_CREATED = "product/created";
+export const EVENT_PRODUCT_UPDATED = "product/updated";
 
 /**
  * PostgreSQL Environment Variables
@@ -56,3 +58,8 @@ export const DB_PORT = process.env.DB_PORT;
  * OrderProtection Variables
  */
 export const OP_PRODUCT_NAME = "Order Protection";
+
+/**
+ * OrderStatus Variables
+ */
+export const ORDER_STATUS_SHIPPED = 2;
