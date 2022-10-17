@@ -3,8 +3,9 @@ import BaseController from "../base-controller";
 import BigCommerceAPI from "../../bigcommerce/bc-api";
 import BigCommerceWebhook from "../../bigcommerce/bc-webhook";
 import { ERROR_GN_ORDER_CREATE_FAILED } from "../../constants/errors";
-import { getPriceTierIdByPrice, addUser, addMerchant, addStoreSetting, addStore } from '../../database/db-helpers';
+import { getPriceTierIdByPrice, addUser, addMerchant, addStoreSetting, addStore, addItem } from '../../database/db-helpers';
 import { UserType } from "../../constants/constants";
+import { getValue100 } from "../../utils/util-helpers";
 
 class OnboardController extends BaseController {
   constructor(event) {
@@ -57,11 +58,13 @@ class OnboardController extends BaseController {
 
     try {
       // Setup Order|Product|Shipment-related webhooks
+      console.log('Setup webhooks...');
       await webhookService.setupOrderWebhook();
       await webhookService.setupProductWebhook();
       await webhookService.setupShipmentWebhook();
 
       // Create an OP product
+      console.log('Create OP products...');
       const product = await apiService.createOPProduct();
       // Find variantID
       const variant = product.variants.find(
@@ -100,7 +103,7 @@ class OnboardController extends BaseController {
 
       // Create a store
       const store = await addStore(
-        storeMetadata.id,
+        storeMetadata.store_id,
         merchant["id"],
         storeMetadata.name,
         this.revSharePercent,
@@ -117,6 +120,31 @@ class OnboardController extends BaseController {
       // Create a storeSetting
       const storeSetting = await addStoreSetting(storeMetadata.control_panel_base_url);
       console.log("@StoreSetting: ", storeSetting);
+
+      // Get all variants (async)
+      Promise.all([
+        apiService.getStoreProducts(),
+        apiService.getStoreVariants(),
+      ]).then((result) => {
+        const products = result[0];
+        const variants = result[1];
+        console.log("@StoreProduct: ", products);
+        console.log("@StoreVariants: ", variants);
+        const productById = {};
+        products.forEach((product) => {
+          productById[product.id] = product;
+        });
+        variants.forEach((variant) => {
+          addItem(
+            variant.sku_id,
+            variant.product_id,
+            storeMetadata.store_id,
+            productById[variant.product_id].name,
+            variant.image_url,
+            getValue100(variant.calculated_price)
+          );
+        });
+      });
 
       return store;
     } catch(err) {
