@@ -25,7 +25,7 @@ const addStore = (
   INSERT INTO stores (store_id, merchant_id, store_name, revenue_share, variant_id, price_tier_id, api_path, client_id, client_secret, access_token)
   VALUES
     (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
     )
   RETURNING *;
   `;
@@ -157,7 +157,7 @@ const getStoreById = (storeId) => {
     if (res.rowCount) {
       return res.rows[0];
     } else {
-      throw Error(ERROR_DB_NOT_FOUND);
+      return null;
     }
   });
 };
@@ -257,8 +257,8 @@ const addOrderItem = (orderId, itemId, lineItemId, quantity, discount) => {
     itemId,
     lineItemId,
     quantity,
-    discount
-  ]).then(res => {
+    discount,
+  ]).then((res) => {
     if (res.rowCount) {
       return res.rows[0];
     } else {
@@ -273,10 +273,9 @@ const addOrderItem = (orderId, itemId, lineItemId, quantity, discount) => {
 const getCurrencies = () => {
   const query = `
   SELECT currency FROM currencies`;
-  return executeQuery(query, [])
-    .then(res => {
-      return res.rows;
-    });
+  return executeQuery(query, []).then((res) => {
+    return res.rows;
+  });
 };
 
 /**
@@ -286,14 +285,141 @@ const getTodayRate = (date, currency) => {
   const query = `
   SELECT * FROM exchange_rates
   WHERE date = $1 and convert_to = $2`;
-  return executeQuery(query, [date, currency])
-    .then(res => {
-      if (res.rowCount) {
-        return res.rows[0];
-      } else {
-        return null;
-      }
+  return executeQuery(query, [date, currency]).then((res) => {
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      return null;
+    }
+  });
+};
+
+/**
+ * Adds a new product variant to DB
+ */
+const addItem = (variantId, productId, storeId, itemName, photo, price) => {
+  const query = `
+  INSERT INTO items (variant_id, product_id, store_id, item_name, photo, price)
+  VALUES ($1, $2, $3, $4, $5, $6)
+  RETURNING *;`;
+  return executeQuery(query, [
+    variantId,
+    productId,
+    storeId,
+    itemName,
+    photo,
+    price,
+  ]).then((res) => {
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
+};
+
+/**
+ * Removes product by id
+ */
+const removeItem = (id) => {
+  const query = `
+  DELETE FROM items
+  WHERE id=$1
+  `;
+  return executeQuery(query, [id]).then((res) => {});
+};
+
+/**
+ * Gets an item by storeId and variantId
+ */
+const getItemByStoreVariantId = (storeId, variantId) => {
+  const query = `SELECT * FROM items
+  WHERE store_id = $1 AND variant_id = $2`;
+  return executeQuery(query, [storeId, variantId]).then((res) => {
+    if (res.rowCount) return res.rows[0];
+    else return null;
+  });
+};
+
+/**
+ * Removes items by storeId and productId
+ */
+const removeItemsByStoreProductId = (storeId, productId) => {
+  const query = `
+  DELETE FROM items
+  WHERE store_id = $1 AND product_id = $2`;
+  return executeQuery(query, [storeId, productId]).then((res) => {
+    console.log("Items deleted successfully...");
+  });
+};
+
+/**
+ * Removes items by storeId and variantId
+ */
+ const removeItemsByStoreVariantId = (storeId, variantId) => {
+  const query = `
+  DELETE FROM items
+  WHERE store_id = $1 AND variant_id = $2`;
+  return executeQuery(query, [storeId, variantId]).then((res) => {
+    console.log("Items deleted successfully...");
+  });
+};
+
+/**
+ * Gets an order by orderId
+ */
+const getOrdersByOrderId = (orderId) => {
+  const query = `
+  SELECT * FROM orders
+  WHERE order_id = $1`;
+  return executeQuery(query, [orderId])
+    .then((res) => {
+      return res.rows;
     });
+};
+
+/**
+ * Adds a new order fulfillment to DB
+ */
+const addFulfillment = (
+  quantity,
+  trackingCompany,
+  trackingNumber,
+  trackingUrl,
+  lineItemId,
+  productId,
+  storeId,
+  orderId
+) => {
+  const query = `
+  INSERT INTO fulfillments (quantity, tracking_company, tracking_number, tracking_url, line_item_id, product_id, store_id, order_id)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  RETURNING *;`;
+  return executeQuery(query, [
+    quantity,
+    trackingCompany,
+    trackingNumber,
+    trackingUrl,
+    lineItemId,
+    productId,
+    storeId,
+    orderId,
+  ]).then((res) => {
+    if (res.rowCount) return res.rows[0];
+    else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
+};
+
+/**
+ * Removes all fulfillments by orderId
+ */
+const removeFulfillmentsByOrderId = (orderId) => {
+  const query = `
+  DELETE FROM fulfillments
+  WHERE order_id = $1`;
+  return executeQuery(query, [orderId]).then((res) => {});
 };
 
 export {
@@ -307,5 +433,13 @@ export {
   addOrderInsurance,
   addOrderItem,
   getCurrencies,
-  getTodayRate
+  getTodayRate,
+  addItem,
+  removeItem,
+  getItemByStoreVariantId,
+  getOrdersByOrderId,
+  addFulfillment,
+  removeFulfillmentsByOrderId,
+  removeItemsByStoreProductId,
+  removeItemsByStoreVariantId
 };
