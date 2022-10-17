@@ -3,6 +3,7 @@
  */
 class BaseController {
   constructor(event) {
+    console.log("@BaseEvent: ", event);
     this.event = event;
     this.method = event.httpMethod;
     this.queryStringParameters = event.queryStringParameters || {};
