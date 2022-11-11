@@ -1,5 +1,6 @@
 // External dependencies
 import bcrypt from "bcryptjs";
+import { BC_PLATFORM_ID } from "../constants/constants";
 
 // Internal dependencies
 import { ERROR_DB_FAILED, ERROR_DB_NOT_FOUND } from "../constants/errors";
@@ -12,34 +13,37 @@ import { executeQuery } from "./db-connection";
 const addStore = (
   storeId,
   merchantId,
+  storeUrl,
   storeName,
   revSharePercent,
   variantId,
   priceTierId,
   apiPath,
   clientId,
-  clientSecret,
-  accessToken
+  storeApiSecret,
+  storeApiKey
 ) => {
   const query = `
-  INSERT INTO stores (store_id, merchant_id, store_name, revenue_share, variant_id, price_tier_id, api_path, client_id, client_secret, access_token)
+  INSERT INTO stores (store_id, merchant_id, store_url, store_name, store_revenue_percentage, order_protection_variant_id, price_tier_id, api_path, client_id, store_api_secret, store_api_key, platform_id)
   VALUES
     (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
     )
   RETURNING *;
   `;
   return executeQuery(query, [
     storeId,
     merchantId,
+    storeUrl,
     storeName,
     revSharePercent,
     variantId,
     priceTierId,
     apiPath,
     clientId,
-    clientSecret,
-    accessToken,
+    storeApiSecret,
+    storeApiKey,
+    BC_PLATFORM_ID,
   ]).then((res) => {
     if (res.rowCount) {
       return res.rows[0];
@@ -53,13 +57,13 @@ const addStore = (
  * Adds a new user to DB
  * @returns Promise<User>
  */
-const addUser = (firstName, lastName, email, password, type) => {
+const addUser = (firstName, lastName, email, password, userType) => {
   // Calculate hashed password
   const salt = bcrypt.genSaltSync();
   const hashedPassword = bcrypt.hashSync(password, salt);
 
   const query = `
-  INSERT INTO users (first_name, last_name, email, password, type)
+  INSERT INTO users (first_name, last_name, email, password, user_type)
   VALUES
     (
       $1, $2, $3, $4, $5
@@ -71,7 +75,7 @@ const addUser = (firstName, lastName, email, password, type) => {
     lastName,
     email,
     hashedPassword,
-    type,
+    userType,
   ]).then((res) => {
     console.log("@User DB Result: ", res);
     if (res.rowCount) {
@@ -88,7 +92,7 @@ const addUser = (firstName, lastName, email, password, type) => {
  */
 const addMerchant = (userId, billingEmail, supportEmail) => {
   const query = `
-  INSERT INTO merchants (user_id, billing_email, support_email)
+  INSERT INTO merchants (user_id, billing_email, claims_email)
   VALUES
     (
       $1, $2, $3
@@ -112,14 +116,14 @@ const addMerchant = (userId, billingEmail, supportEmail) => {
  */
 const addStoreSetting = (storeUrl) => {
   const query = `
-  INSERT INTO store_settings (store_url)
+  INSERT INTO store_settings (store_url, dynamic_price, default_op)
   VALUES
     (
-      $1
+      $1, $2, $3
     )
   RETURNING *;
   `;
-  return executeQuery(query, [storeUrl]).then((res) => {
+  return executeQuery(query, [storeUrl, false, true]).then((res) => {
     if (res.rowCount) {
       return res.rows[0];
     } else {
@@ -184,7 +188,7 @@ const addOrder = (
   ignorePayout = false
 ) => {
   const query = `
-  INSERT INTO orders (customer_name, order_date, shipping_address, shipping_courier, phone_number, order_total, order_shipping, order_id, order_email, postal_code, store_id, order_json, billing_address, billing_phone_number, billing_name, ignore_payout)
+  INSERT INTO orders (customer_name, order_date, shipping_address, shipping_courier, phone_number, order_total, order_shipping, shopify_order_id, order_email, postal_code, store_id, order_json, billing_address, billing_phone_number, billing_name, ignore_payout)
   VALUES
     (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
@@ -247,10 +251,10 @@ const addOrderInsurance = (
 /**
  * Adds a new order item to DB
  */
-const addOrderItem = (orderId, itemId, lineItemId, quantity, discount) => {
+const addOrderItem = (orderId, itemId, lineItemId, quantity, discount, shippingAddressId) => {
   const query = `
-  INSERT INTO order_items (order_id, item_id, line_item_id, quantity, discount)
-  VALUES ($1, $2, $3, $4, $5)
+  INSERT INTO order_items (order_id, item_id, line_item_id, quantity, discount, shipping_address_id)
+  VALUES ($1, $2, $3, $4, $5, $6)
   RETURNING *;`;
   return executeQuery(query, [
     orderId,
@@ -258,6 +262,7 @@ const addOrderItem = (orderId, itemId, lineItemId, quantity, discount) => {
     lineItemId,
     quantity,
     discount,
+    shippingAddressId
   ]).then((res) => {
     if (res.rowCount) {
       return res.rows[0];
@@ -356,7 +361,7 @@ const removeItemsByStoreProductId = (storeId, productId) => {
 /**
  * Removes items by storeId and variantId
  */
- const removeItemsByStoreVariantId = (storeId, variantId) => {
+const removeItemsByStoreVariantId = (storeId, variantId) => {
   const query = `
   DELETE FROM items
   WHERE store_id = $1 AND variant_id = $2`;
@@ -366,16 +371,17 @@ const removeItemsByStoreProductId = (storeId, productId) => {
 };
 
 /**
- * Gets an order by orderId
+ * Gets an order by storeId & orderId
  */
-const getOrdersByOrderId = (orderId) => {
+const getOrderByStoreOrderId = (storeId, orderId) => {
   const query = `
   SELECT * FROM orders
-  WHERE order_id = $1`;
-  return executeQuery(query, [orderId])
-    .then((res) => {
-      return res.rows;
-    });
+  WHERE store_id = $1 AND order_id = $2`;
+  return executeQuery(query, [storeId, orderId]).then((res) => {
+    if (res.rowCount)
+      return res.rows[0];
+    return null;
+  });
 };
 
 /**
@@ -387,13 +393,11 @@ const addFulfillment = (
   trackingNumber,
   trackingUrl,
   lineItemId,
-  productId,
-  storeId,
   orderId
 ) => {
   const query = `
-  INSERT INTO fulfillments (quantity, tracking_company, tracking_number, tracking_url, line_item_id, product_id, store_id, order_id)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  INSERT INTO fulfillments (quantity, tracking_company, tracking_number, tracking_url, line_item_id, order_id)
+  VALUES ($1, $2, $3, $4, $5, $6)
   RETURNING *;`;
   return executeQuery(query, [
     quantity,
@@ -401,9 +405,7 @@ const addFulfillment = (
     trackingNumber,
     trackingUrl,
     lineItemId,
-    productId,
-    storeId,
-    orderId,
+    orderId
   ]).then((res) => {
     if (res.rowCount) return res.rows[0];
     else {
@@ -413,13 +415,44 @@ const addFulfillment = (
 };
 
 /**
- * Removes all fulfillments by orderId
+ * Removes all fulfillments by storeId and orderId
  */
-const removeFulfillmentsByOrderId = (orderId) => {
+const removeFulfillmentsByOrderId = (storeId, orderId) => {
   const query = `
   DELETE FROM fulfillments
   WHERE order_id = $1`;
   return executeQuery(query, [orderId]).then((res) => {});
+};
+
+/**
+ * Adds a new order shipping information to DB (: used for multiple shipping addresses)
+ */
+const addOrderShipment = (
+  orderId,
+  shippingAddressId,
+  shippingAddress,
+  phoneNumber,
+  email,
+  postalCode
+) => {
+  const query = `
+  INSERT INTO order_shipments (order_id, shipping_address_id, shipping_address, phone_number, email, postal_code)
+  VALUES ($1, $2, $3, $4, $5)
+  RETURNING *;`;
+  return executeQuery(query, [
+    orderId,
+    shippingAddressId,
+    shippingAddress,
+    phoneNumber,
+    email,
+    postalCode,
+  ]).then((res) => {
+    if (res.rowCount) {
+      return res.rows[0];
+    } else {
+      throw Error(ERROR_DB_FAILED);
+    }
+  });
 };
 
 export {
@@ -437,9 +470,10 @@ export {
   addItem,
   removeItem,
   getItemByStoreVariantId,
-  getOrdersByOrderId,
+  getOrderByStoreOrderId,
   addFulfillment,
   removeFulfillmentsByOrderId,
   removeItemsByStoreProductId,
-  removeItemsByStoreVariantId
+  removeItemsByStoreVariantId,
+  addOrderShipment
 };

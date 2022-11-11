@@ -11,13 +11,14 @@ import {
   addOrderInsurance,
   addOrderItem,
   getItemByStoreVariantId,
-  getOrdersByOrderId,
+  getOrderByStoreOrderId,
   getStoreById,
   getTodayRate,
   addItem,
   addFulfillment,
   removeFulfillmentsByOrderId,
   removeItemsByStoreVariantId,
+  addOrderShipment
 } from "../../database/db-helpers";
 import {
   getFullAddress,
@@ -40,8 +41,7 @@ class OrderController extends BaseController {
     this.baseUrl = this.body.producer; // e.g. `stores/{store_hash}`
     this.orderId = this.body.data.id;
     this.eventType = "";
-    if (this.scope.endsWith("created"))
-      this.eventType = EVENT_ORDER_CREATED;
+    if (this.scope.endsWith("created")) this.eventType = EVENT_ORDER_CREATED;
     else if (this.scope.endsWith("updated"))
       this.eventType = EVENT_ORDER_UPDATED;
   }
@@ -65,7 +65,7 @@ class OrderController extends BaseController {
     try {
       const store = await getStoreById(this.storeId);
       console.log("@Store: ", store);
-      const apiService = new BigCommerceAPI(store.api_path, store.access_token);
+      const apiService = new BigCommerceAPI(store.api_path, store.store_api_key);
       const order = await apiService.getOrder(this.orderId);
       console.log("@Order: ", order);
 
@@ -73,7 +73,7 @@ class OrderController extends BaseController {
       const shippingAddresses = await apiService.getShippingAddresses(order.id);
       const products = await apiService.getOrderProducts(order.id);
       const orderProtectionItemExists = products.find(
-        (item) => item.name === "Order Protection"
+        (item) => item.name === OP_PRODUCT_NAME
       );
 
       console.log("@Customer: ", customer);
@@ -88,18 +88,23 @@ class OrderController extends BaseController {
       console.log("@ExchangeRate: ", exchangeRate);
 
       // Check whether order already exists in the DB
-      const orderExists = (await getOrdersByOrderId(order.id)).length > 0;
+      const orderExists = (await getOrderByStoreOrderId(order.id)) != null;
 
-      const addedOrders = {};
       if (!orderExists) {
+        console.log("Adding order...");
+        const customerName = getFullName(
+          customer.first_name,
+          customer.last_name
+        );
+        const dateCreated = order.date_created;
+
+        // Multiple shipping addresses
+        const shippingFullAddresses = [];
+        const shippingPhoneNumbers = [];
+        const shippingEmails = [];
+        const shippingPostalCodes = [];
         for (const shippingAddress of shippingAddresses) {
-          console.log("Adding order...");
-          const customerName = getFullName(
-            customer.first_name,
-            customer.last_name
-          );
-          const dateCreated = order.date_created;
-          const shippingFullAddress = getFullAddress(
+          const fullAddress = getFullAddress(
             shippingAddress.company,
             shippingAddress.street_1,
             shippingAddress.street_2,
@@ -109,61 +114,82 @@ class OrderController extends BaseController {
             shippingAddress.country_iso2,
             shippingAddress.country
           );
-
           const phoneNumber = shippingAddress.phone;
-          const orderId = order.id;
-          const orderEmail = shippingAddress.email;
+          const email = shippingAddress.email;
           const postalCode = shippingAddress.zip;
-          const billingFullAddress = getFullAddress(
-            order.billing_address.company,
-            order.billing_address.street_1,
-            order.billing_address.street_2,
-            order.billing_address.city,
-            order.billing_address.state,
-            order.billing_address.zip,
-            order.billing_address.country_iso2,
-            order.billing_address.country
-          );
-          const billingPhoneNumber = order.billing_address.phone;
-          const billingName = getFullName(
-            order.billing_address.first_name,
-            order.billing_address.last_name
-          );
-          const storeId = this.storeId;
 
-          // Calculate `order_total` and `order_shipping`
-          let orderTotal = 0;
-          let orderShipping = 0;
-          products.forEach((product) => {
-            if (product.order_address_id === shippingAddress.id) {
-              orderTotal += getValue100(product.total_inc_tax); // TODO: check logic
-              orderShipping += getValue100(product.fixed_shipping_cost); // TODO: check logic
-              for (const discount of product.applied_discounts) {
-                orderTotal -= getValue100(discount.amount);
-              }
-            }
-          });
+          shippingFullAddresses.push(fullAddress);
+          shippingPhoneNumbers.push(phoneNumber);
+          shippingEmails.push(email);
+          shippingPostalCodes.push(postalCode);
+        }
 
-          order.shippingAddress = shippingAddress;
-          const addedOrder = await addOrder(
-            customerName,
-            dateCreated,
-            shippingFullAddress,
-            null,
-            phoneNumber,
-            orderTotal,
-            orderShipping,
-            orderId,
-            orderEmail,
-            postalCode,
-            storeId,
-            JSON.stringify(order),
-            billingFullAddress,
-            billingPhoneNumber,
-            billingName,
-            orderProtectionItemExists
+        // Calculate `order_total` and `order_shipping`
+        let orderTotal = 0;
+        let orderShipping = 0;
+        products.forEach((product) => {
+          orderTotal += getValue100(product.total_inc_tax);
+          orderShipping += getValue100(product.fixed_shipping_cost);
+          for (const discount of product.applied_discounts) {
+            orderTotal -= getValue100(discount.amount);
+          }
+        });
+
+        const orderId = order.id;
+        const storeId = this.storeId;
+
+        const billingFullAddress = getFullAddress(
+          order.billing_address.company,
+          order.billing_address.street_1,
+          order.billing_address.street_2,
+          order.billing_address.city,
+          order.billing_address.state,
+          order.billing_address.zip,
+          order.billing_address.country_iso2,
+          order.billing_address.country
+        );
+        const billingPhoneNumber = order.billing_address.phone;
+        const billingName = getFullName(
+          order.billing_address.first_name,
+          order.billing_address.last_name
+        );
+
+        const addedOrder = await addOrder(
+          customerName,
+          dateCreated,
+          JSON.stringify(shippingFullAddresses),
+          null,
+          JSON.stringify(shippingPhoneNumbers),
+          orderTotal,
+          orderShipping,
+          orderId,
+          JSON.stringify(shippingEmails),
+          JSON.stringify(shippingPostalCodes),
+          storeId,
+          JSON.stringify(order),
+          billingFullAddress,
+          billingPhoneNumber,
+          billingName,
+          orderProtectionItemExists
+        );
+
+        // Add multiple shipping addresses to related table `order_shipment`
+        for (const shippingAddress of shippingAddresses) {
+          const fullAddress = getFullAddress(
+            shippingAddress.company,
+            shippingAddress.street_1,
+            shippingAddress.street_2,
+            shippingAddress.city,
+            shippingAddress.state,
+            shippingAddress.zip,
+            shippingAddress.country_iso2,
+            shippingAddress.country
           );
-          addedOrders[shippingAddress.id] = addedOrder;
+          const phoneNumber = shippingAddress.phone;
+          const email = shippingAddress.email;
+          const postalCode = shippingAddress.zip;
+
+          await addOrderShipment(addedOrder.id, shippingAddress.id, fullAddress, phoneNumber, email, postalCode);
         }
 
         for (const product of products) {
@@ -181,9 +207,9 @@ class OrderController extends BaseController {
             await addOrderInsurance(
               insuranceCost * exchangeRate,
               totalDiscount * exchangeRate,
-              addedOrders[product.order_address_id].id,
+              addedOrder.id,
               insuranceCost // TODO: What is original price?
-            );
+            )
           } else {
             let variant = await getItemByStoreVariantId(
               this.storeId,
@@ -192,7 +218,10 @@ class OrderController extends BaseController {
             if (product.variant_id && !variant) {
               // Add `item`
               console.log("Adding item...");
-              await removeItemsByStoreVariantId(this.storeId, product.variant_id);
+              await removeItemsByStoreVariantId(
+                this.storeId,
+                product.variant_id
+              );
               variant = await addItem(
                 product.variant_id,
                 product.product_id,
@@ -205,17 +234,18 @@ class OrderController extends BaseController {
             // Add `orderItem`
             console.log("Adding order item...");
             await addOrderItem(
-              addedOrders[product.order_address_id].id,
+              addedOrder.id,
               variant.id, // TODO: should be itemId from `items` table
               product.id, // TODO: should be lineItemId
               product.quantity,
-              totalDiscount
+              totalDiscount,
+              product.order_address_id
             );
           }
         }
+        return addedOrder;
       }
-
-      return addedOrders;
+      return {};
     } catch (err) {
       console.log("#OrderCreate Error: ", err);
       this.error = {
@@ -231,18 +261,18 @@ class OrderController extends BaseController {
    */
   async processOrderUpdated() {
     const store = await getStoreById(this.storeId);
-    const apiService = new BigCommerceAPI(store.api_path, store.access_token);
-    const order = await apiService.getOrder(this.orderId);
+    const apiService = new BigCommerceAPI(store.api_path, store.store_api_key);
+    const orderFromAPI = await apiService.getOrder(this.orderId);
+    const orderFromDB = await getOrderByStoreOrderId(this.storeId, this.orderId);
 
     // Removes all existing fulfillments of the same order
-    removeFulfillmentsByOrderId(this.orderId);
+    removeFulfillmentsByOrderId(this.storeId, this.orderId);
 
-    const orderStatus = order.status_id;
+    const orderStatus = orderFromAPI.status_id;
     console.log("@OrderStatus: ", orderStatus);
     if (orderStatus === ORDER_STATUS_SHIPPED) {
       // Get all shipments of the order
-      const shipments = await apiService.getOrderShipments(order.id);
-      const products = await apiService.getOrderProducts(order.id);
+      const shipments = await apiService.getOrderShipments(this.orderId);
       console.log("@Shipments: ", shipments);
       for (let shipment of shipments) {
         // Iterate items in the shipment
@@ -254,9 +284,7 @@ class OrderController extends BaseController {
             shipment.tracking_number,
             shipment.tracking_link,
             item.order_product_id,
-            item.product_id,
-            this.storeId,
-            order.id
+            orderFromDB.id
           );
         }
       }

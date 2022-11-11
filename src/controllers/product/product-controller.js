@@ -57,7 +57,7 @@ class ProductController extends BaseController {
       console.log("Ignoring OP Product Created Event...");
       return;
     }
-    const apiService = new BigCommerceAPI(store.api_path, store.access_token);
+    const apiService = new BigCommerceAPI(store.api_path, store.store_api_key);
     const product = await apiService.getProduct(this.productId);
     const variants = await apiService.getProductVariants(this.productId);
 
@@ -83,7 +83,7 @@ class ProductController extends BaseController {
    */
   async processProductUpdated() {
     const store = await getStoreById(this.storeId);
-    const apiService = new BigCommerceAPI(store.api_path, store.access_token);
+    const apiService = new BigCommerceAPI(store.api_path, store.store_api_key);
     const product = await apiService.getProduct(this.productId);
     const variants = await apiService.getProductVariants(this.productId);
 

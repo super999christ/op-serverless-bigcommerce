@@ -1,5 +1,5 @@
 # NOTE: update this with your service name
-service: order-protection-serverless-bc-test10
+service: order-protection-serverless-bc-test11
 
 # Create an optimized package for our functions
 package:

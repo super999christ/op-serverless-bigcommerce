@@ -27,8 +27,9 @@ class OnboardController extends BaseController {
     this.opFee = Number(this.body.opFee);
     this.apiPath = this.body.apiPath;
     this.clientId = this.body.clientId;
-    this.clientSecret = this.body.clientSecret;
-    this.accessToken = this.body.accessToken;
+    this.storeApiSecret = this.body.clientSecret;
+    this.storeApiKey = this.body.accessToken;
+    this.storeUrl = this.body.storeUrl;
   }
 
   /**
@@ -38,8 +39,8 @@ class OnboardController extends BaseController {
     return {
       apiPath: this.apiPath,
       clientId: this.clientId,
-      clientSecret: this.clientSecret,
-      accessToken: this.accessToken
+      storeApiSecret: this.storeApiSecret,
+      storeApiKey: this.storeApiKey
     };
   }
 
@@ -49,11 +50,11 @@ class OnboardController extends BaseController {
   async processStoreOnboarded() {
     const webhookService = new BigCommerceWebhook(
       this.apiPath,
-      this.accessToken
+      this.storeApiKey
     );
     const apiService = new BigCommerceAPI(
       this.apiPath,
-      this.accessToken
+      this.storeApiKey
     );
 
     try {
@@ -105,20 +106,21 @@ class OnboardController extends BaseController {
       const store = await addStore(
         storeMetadata.store_id,
         merchant["id"],
+        storeMetadata.secure_url,
         storeMetadata.name,
         this.revSharePercent,
         variant.id,
         priceTierId,
         this.apiPath,
         this.clientId,
-        this.clientSecret,
-        this.accessToken
+        this.storeApiSecret,
+        this.storeApiKey
       );
 
       console.log("@Store: ", store);
 
       // Create a storeSetting
-      const storeSetting = await addStoreSetting(storeMetadata.control_panel_base_url);
+      const storeSetting = await addStoreSetting(storeMetadata.secure_url);
       console.log("@StoreSetting: ", storeSetting);
 
       // Get all variants (async)

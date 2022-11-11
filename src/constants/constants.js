@@ -60,6 +60,11 @@ export const DB_PORT = process.env.DB_PORT;
 export const OP_PRODUCT_NAME = "Order Protection";
 
 /**
+ * BigCommerce Platform Variables
+ */
+export const BC_PLATFORM_ID = 1;
+
+/**
  * OrderStatus Variables
  */
 export const ORDER_STATUS_SHIPPED = 2;
