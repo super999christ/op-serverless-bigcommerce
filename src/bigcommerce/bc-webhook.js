@@ -15,7 +15,7 @@ class BigCommerceWebhook {
    * Setup Webhook for handling order events
    */
   setupOrderWebhook() {
-    this.axios.post('/hooks', {
+    return this.axios.post('/hooks', {
       scope: 'store/order/*',
       destination: `${BASE_LAMBDA_URL}/order/handle-order`,
       is_active: true,
@@ -27,7 +27,7 @@ class BigCommerceWebhook {
    * Setup Webhook for handling product events
    */
   setupProductWebhook() {
-    this.axios.post('/hooks', {
+    return this.axios.post('/hooks', {
       scope: 'store/product/*',
       destination: `${BASE_LAMBDA_URL}/product/handle-product`,
       is_active: true,
@@ -39,7 +39,7 @@ class BigCommerceWebhook {
    * Setup Webhook for handling shipment events
    */
   setupShipmentWebhook() {
-    this.axios.post('/hooks', {
+    return this.axios.post('/hooks', {
       scope: 'store/shipment/*',
       destination: `${BASE_LAMBDA_URL}/shipment/handle-shipment`,
       is_active: true,

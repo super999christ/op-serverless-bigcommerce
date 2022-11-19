@@ -87,8 +87,9 @@ class ProductController extends BaseController {
     const product = await apiService.getProduct(this.productId);
     const variants = await apiService.getProductVariants(this.productId);
 
-    removeItemsByStoreProductId(this.storeId, this.productId);
+    await removeItemsByStoreProductId(this.storeId, this.productId);
 
+    console.log(`${variants.length} items are being added...`);
     for (let variant of variants) {
       console.log("Update Product...");
       console.log("@Variant: ", variant);

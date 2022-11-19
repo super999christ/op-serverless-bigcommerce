@@ -175,8 +175,10 @@ const addOrder = (
   shippingAddress,
   shippingCourier,
   phoneNumber,
+  shippingCustomer,
   orderTotal,
   orderShipping,
+  storeOrderId,
   orderId,
   orderEmail,
   postalCode,
@@ -188,10 +190,10 @@ const addOrder = (
   ignorePayout = false
 ) => {
   const query = `
-  INSERT INTO orders (customer_name, order_date, shipping_address, shipping_courier, phone_number, order_total, order_shipping, shopify_order_id, order_email, postal_code, store_id, order_json, billing_address, billing_phone_number, billing_name, ignore_payout)
+  INSERT INTO orders (customer_name, order_date, shipping_address, shipping_courier, phone_number, shipping_customer_name, order_total, order_shipping, store_order_id, shopify_order_id, order_email, postal_code, store_id, order_json, billing_address, billing_phone_number, billing_name, ignore_payout)
   VALUES
     (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
     )
   RETURNING *;`;
   return executeQuery(query, [
@@ -200,8 +202,10 @@ const addOrder = (
     shippingAddress,
     shippingCourier,
     phoneNumber,
+    shippingCustomer,
     orderTotal,
     orderShipping,
+    storeOrderId,
     orderId,
     orderEmail,
     postalCode,
@@ -376,7 +380,7 @@ const removeItemsByStoreVariantId = (storeId, variantId) => {
 const getOrderByStoreOrderId = (storeId, orderId) => {
   const query = `
   SELECT * FROM orders
-  WHERE store_id = $1 AND order_id = $2`;
+  WHERE store_id = $1 AND shopify_order_id = $2`;
   return executeQuery(query, [storeId, orderId]).then((res) => {
     if (res.rowCount)
       return res.rows[0];
@@ -437,7 +441,7 @@ const addOrderShipment = (
 ) => {
   const query = `
   INSERT INTO order_shipments (order_id, shipping_address_id, shipping_address, phone_number, email, postal_code)
-  VALUES ($1, $2, $3, $4, $5)
+  VALUES ($1, $2, $3, $4, $5, $6)
   RETURNING *;`;
   return executeQuery(query, [
     orderId,

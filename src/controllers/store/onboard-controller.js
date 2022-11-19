@@ -29,7 +29,6 @@ class OnboardController extends BaseController {
     this.clientId = this.body.clientId;
     this.storeApiSecret = this.body.clientSecret;
     this.storeApiKey = this.body.accessToken;
-    this.storeUrl = this.body.storeUrl;
   }
 
   /**
