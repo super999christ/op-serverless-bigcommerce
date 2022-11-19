@@ -47,6 +47,12 @@ class BigCommerceAPI {
         description:
           '<p><a href="https://orderprotection.com">OrderProtection.com</a> is offered as an additional item at checkout. There’s no extra application process or forms to fill out, customers just checkout and are instantly protected against items:<br></p><ul><li>Stolen</li><li>Delivered Not Received</li><li>Damaged Item</li><li>Lost in Transit</li><li>Wrong Item</li></ul>',
         variants: variants,
+        images: [
+          {
+            image_url: 'https://order-protection-static.s3-us-west-1.amazonaws.com/logo.png',
+            is_thumbnail: true
+          }
+        ]
       })
     ).data.data;
 
