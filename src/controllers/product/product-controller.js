@@ -66,7 +66,7 @@ class ProductController extends BaseController {
 
     for (let variant of variants) {
       await addItem(
-        variant.sku_id,
+        variant.id,
         variant.product_id,
         this.storeId,
         product.name,
@@ -94,7 +94,7 @@ class ProductController extends BaseController {
       console.log("Update Product...");
       console.log("@Variant: ", variant);
       await addItem(
-        variant.sku_id,
+        variant.id,
         variant.product_id,
         this.storeId,
         product.name,

@@ -132,16 +132,19 @@ class OnboardController extends BaseController {
         console.log("@StoreProduct: ", products);
         console.log("@StoreVariants: ", variants);
         const productById = {};
-        products.forEach((product) => {
+        for (let product of products) {
           productById[product.id] = product;
-        });
+          const images = await apiService.getProductImages(product.id);
+          if (images.length > 0)
+            productById[product.id].image_url = images[0].url_standard;
+        }
         variants.forEach((variant) => {
           addItem(
-            variant.sku_id,
+            variant.id,
             variant.product_id,
             storeMetadata.store_id,
             productById[variant.product_id].name,
-            variant.image_url,
+            variant.image_url || productById[variant.product_id].image_url,
             getValue100(variant.calculated_price)
           );
         });

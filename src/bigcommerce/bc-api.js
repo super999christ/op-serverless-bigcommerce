@@ -44,6 +44,7 @@ class BigCommerceAPI {
         sku: "ORDERP",
         weight: 0,
         price: 0,
+        is_visible: false,
         description:
           '<p><a href="https://orderprotection.com">OrderProtection.com</a> is offered as an additional item at checkout. There’s no extra application process or forms to fill out, customers just checkout and are instantly protected against items:<br></p><ul><li>Stolen</li><li>Delivered Not Received</li><li>Damaged Item</li><li>Lost in Transit</li><li>Wrong Item</li></ul>',
         variants: variants,
@@ -121,6 +122,14 @@ class BigCommerceAPI {
   async getProduct(productId) {
     const product = (await this.axios.get(`/catalog/products/${productId}`)).data;
     return product.data;
+  }
+
+  /**
+   * Fetches product images
+   */
+  async getProductImages(productId) {
+    const images = (await this.axios.get(`/catalog/products/${productId}/images`)).data;
+    return images.data;
   }
 
   /**

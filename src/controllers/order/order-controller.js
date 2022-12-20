@@ -41,8 +41,8 @@ class OrderController extends BaseController {
     this.baseUrl = this.body.producer; // e.g. `stores/{store_hash}`
     this.orderId = this.body.data.id;
     this.eventType = "";
-    if (this.scope.endsWith("created")) this.eventType = EVENT_ORDER_CREATED;
-    else if (this.scope.endsWith("updated"))
+    if (this.scope.endsWith("order/created")) this.eventType = EVENT_ORDER_CREATED;
+    else if (this.scope.endsWith("order/updated"))
       this.eventType = EVENT_ORDER_UPDATED;
   }
 
@@ -67,6 +67,7 @@ class OrderController extends BaseController {
       console.log("@Store: ", store);
       const apiService = new BigCommerceAPI(store.api_path, store.store_api_key);
       const order = await apiService.getOrder(this.orderId);
+      order.name = '#' + order.id;
       console.log("@Order: ", order);
 
       const customer = await apiService.getCustomer(order.customer_id);
