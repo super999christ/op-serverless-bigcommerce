@@ -83,6 +83,11 @@ class ProductController extends BaseController {
    */
   async processProductUpdated() {
     const store = await getStoreById(this.storeId);
+    if (!store) {
+      // Store doesn't exist: This happens <- OP Product Updated Event
+      console.log("Ignoring OP Product Updated Event...");
+      return;
+    }
     const apiService = new BigCommerceAPI(store.api_path, store.store_api_key);
     const product = await apiService.getProduct(this.productId);
     const variants = await apiService.getProductVariants(this.productId);

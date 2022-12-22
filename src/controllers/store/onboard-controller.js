@@ -126,7 +126,7 @@ class OnboardController extends BaseController {
       Promise.all([
         apiService.getStoreProducts(),
         apiService.getStoreVariants(),
-      ]).then((result) => {
+      ]).then(async (result) => {
         const products = result[0];
         const variants = result[1];
         console.log("@StoreProduct: ", products);

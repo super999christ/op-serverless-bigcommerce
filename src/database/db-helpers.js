@@ -116,14 +116,14 @@ const addMerchant = (userId, billingEmail, supportEmail) => {
  */
 const addStoreSetting = (storeUrl) => {
   const query = `
-  INSERT INTO store_settings (store_url, dynamic_price, default_op)
+  INSERT INTO store_settings (store_url, dynamic_price, default_op, claim_text_updates)
   VALUES
     (
-      $1, $2, $3
+      $1, $2, $3, $4
     )
   RETURNING *;
   `;
-  return executeQuery(query, [storeUrl, false, true]).then((res) => {
+  return executeQuery(query, [storeUrl, false, true, true]).then((res) => {
     if (res.rowCount) {
       return res.rows[0];
     } else {
