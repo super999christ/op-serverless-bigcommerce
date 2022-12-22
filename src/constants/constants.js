@@ -62,7 +62,7 @@ export const OP_PRODUCT_NAME = "Order Protection";
 /**
  * BigCommerce Platform Variables
  */
-export const BC_PLATFORM_ID = 1;
+export const BC_PLATFORM_ID = 2;
 
 /**
  * OrderStatus Variables
