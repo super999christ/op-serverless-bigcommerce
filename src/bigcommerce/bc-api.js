@@ -27,7 +27,7 @@ class BigCommerceAPI {
   async createOPProduct() {
     const variants = variantPrices.map((price, index) => ({
       price: price,
-      sku: index === 0 ? "BASE" : `TIER${index}`,
+      sku: index === 0 ? "OPBASE" : `OPTIER${index}`,
       is_free_shipping: true,
       option_values: [
         {
